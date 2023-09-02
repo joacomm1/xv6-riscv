@@ -124,7 +124,9 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
-
+  acquire(&tickslock);
+  p-> arrivetime = ticks
+  release(&tickslock);
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -446,6 +448,7 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+  uint number_tickets = 100;
   
   c->proc = 0;
   for(;;){
@@ -453,7 +456,9 @@ scheduler(void)
     intr_on();
 
     for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
+    
+    }
+    acquire(&p->lock);
       if(p->state == RUNNABLE) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
@@ -465,10 +470,11 @@ scheduler(void)
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
+  }
+   
       }
       release(&p->lock);
-    }
-  }
+
 }
 
 // Switch to scheduler.  Must hold only p->lock
