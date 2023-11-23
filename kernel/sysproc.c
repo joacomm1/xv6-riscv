@@ -89,3 +89,13 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_set_priority(void)
+{
+    int pid, pr;
+    argint(0, &pid);
+    argint(1, &pr);
+
+    return set_priority(pid, pr);
+}
