@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->priority = 0; // default priority
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -434,42 +435,51 @@ wait(uint64 addr)
   }
 }
 
-// Per-CPU process scheduler.
-// Each CPU calls scheduler() after setting itself up.
-// Scheduler never returns.  It loops, doing:
-//  - choose a process to run.
-//  - swtch to start running that process.
-//  - eventually that process transfers control
-//    via swtch back to the scheduler.
-void
-scheduler(void)
-{
-  struct proc *p;
-  struct cpu *c = mycpu();
-  
-  c->proc = 0;
-  for(;;){
-    // Avoid deadlock by ensuring that devices can interrupt.
-    intr_on();
 
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+void scheduler(void) {
+    struct cpu *c = mycpu();
+    struct proc *selected_process = 0;  // Inicializar la variable
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
-      release(&p->lock);
+    for (;;) {
+        intr_on();
+        
+        int highP = -1;
+
+        for (struct proc *current_process = proc; current_process < &proc[NPROC]; current_process++) {
+            acquire(&current_process->lock);
+
+            if (current_process->state == RUNNABLE && current_process->priority > highP) {
+                selected_process = current_process;
+                highP = current_process->priority;
+                if (selected_process != 0) {
+
+                if (selected_process->state == RUNNABLE) {
+                    selected_process->state = RUNNING;
+                    c->proc = selected_process;
+                    swtch(&c->context, &selected_process->context);
+                    c->proc = 0;
+                }
+
+        }
     }
-  }
+          release(&current_process->lock);
+
+            }
+
+        }
+
+        
 }
+
+
+
+
+
+
+
+
+
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
@@ -680,4 +690,25 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+
+int set_priority(int pid, int priority) {
+  struct proc *p;
+
+    for(p=proc; p<&proc[NPROC]; p++)
+    {
+        acquire(&p->lock);
+
+        if(p->pid == pid)
+        {
+            p->priority = priority;
+            release(&p->lock);
+            break;
+        }
+      release(&p->lock);
+
+    }
+
+    return pid;
 }
