@@ -22,32 +22,6 @@ sys_getpid(void)
 }
 
 uint64
-sys_getppid(void)
-{
-return myproc()->parent->pid;}
-
-uint64
-sys_getancestor(void){
-  struct proc* p = myproc();
-  int cont;
-  argint(0, &cont);
-  if (cont < 0) {
-        return -1;
-    }
-  while (cont > 0 && p != 0){
-    p = p-> parent;
-    cont = cont - 1;
-  }
-  
-  if (cont == 0&& p != 0)
-  {
-    return p->pid;
-  }
-  else {return -1;}
-  
-}
-
-uint64
 sys_fork(void)
 {
   return fork();
@@ -114,4 +88,14 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_set_priority(void)
+{
+    int pid, pr;
+    argint(0, &pid);
+    argint(1, &pr);
+
+    return set_priority(pid, pr);
 }
