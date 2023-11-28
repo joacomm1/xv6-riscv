@@ -133,9 +133,8 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_hola\
-	$U/_yosoytupadre\
-	$U/_yosoytuancestro\
-	$U/_tarea_2\
+	$U/_parte1\
+
 
 
 
