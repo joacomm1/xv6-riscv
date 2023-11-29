@@ -437,3 +437,82 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+
+
+int mprotect(void *addr, int len) {
+  struct proc *curproc = myproc();
+
+  if (!is_valid_length(len, addr, curproc->sz) || !is_page_aligned(addr)) {
+    return -1;
+  }
+
+  if (!set_read_only(addr, len, curproc->pgdir)) {
+    return -1;
+  }
+
+  sfence_vma();
+
+  return 0;
+}
+
+int is_valid_length(int len, void *addr, uint sz) {
+  if (len <= 0 || (int)addr + len * PGSIZE > sz) {
+    printf("\nwrong len\n");
+    return 0;
+  }
+  return 1;
+}
+
+int is_page_aligned(void *addr) {
+  if ((int)(((int) addr) % PGSIZE )  != 0) {
+    printf("\nwrong addr %p\n", addr);
+    return 0;
+  }
+  return 1;
+}
+
+int set_read_only(void *addr, int len, pde_t *pgdir) {
+  pte_t *pte;
+  for (int i = (int) addr; i < ((int) addr + len * PGSIZE); i += PGSIZE) {
+    pte = walk(pgdir, (void*) i, 0);
+    if (pte && ((*pte & PTE_U) != 0) && ((*pte & PTE_P) != 0)) {
+      *pte &= ~PTE_W;
+      printf("\nPTE : 0x%p\n", pte);
+    } else {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+
+munprotect(void *addr, int len){
+  struct proc *curproc = myproc();
+  
+  if(len <= 0 || (int)addr+len*PGSIZE>curproc->sz){
+    printf("\nwrong len\n");
+    return -1;
+  }
+
+  if((int)(((int) addr) % PGSIZE )  != 0){
+    printf("\nwrong addr %p\n", addr);
+    return -1;
+  }
+
+  pte_t *pte;
+  int i;
+  for (i = (int) addr; i < ((int) addr + (len) *PGSIZE); i+= PGSIZE){
+    pte = walk(curproc->pgdir,(void*) i, 0);
+    if(pte && ((*pte & PTE_U) != 0) && ((*pte & PTE_P) != 0) ){
+      *pte = (*pte) | (PTE_W) ;
+      printf("\nPTE : 0x%p\n", pte);
+    } else {
+      return -1;
+    }
+  }
+
+  sfence_vma();
+  
+  return 0;
+}
